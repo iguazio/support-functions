@@ -1,0 +1,14 @@
+metadata:
+  name: container-stats-fetcher
+spec:
+  description: "Gets iops and latency-per-io performance statistics per container"
+  handler: "main:handler"
+  runtime: "python:3.6"
+  env:
+  - name: IGZ_SESSION_ID
+    value: "<valid-control-session-id>"
+  - name: IGZ_DASHBOARD_URL
+    value: "https://<internal-dashboard-ip>"
+  build:
+    commands:
+      - 'pip install requests'
