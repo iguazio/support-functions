@@ -19,18 +19,7 @@ import (
 
 func Handler(context *nuclio.Context, event nuclio.Event) (interface{}, error) {
 	userData := context.UserData.(UserData)
-	provazioEnv := event.GetFieldString("provazio_env")
-	if provazioEnv == "" {
-		provazioEnv = userData.ProvazioEnv
-	}
-
-	provazio := &Provazio{
-		env:       provazioEnv,
-
-		// TODO: make function call provazio pods from different namespaces
-		// always use provazio remote url
-		useRemote: true,
-	}
+	provazio := NewProvazio(&userData, event)
 
 	context.Logger.DebugWith("Fetching provazio systems", "provazio", provazio)
 	provazioSystems, err := provazio.GetSystems()
@@ -172,17 +161,12 @@ func BuildFunctionResponse(context *nuclio.Context,
 func BuildGetSystemEventsConfiguration(event nuclio.Event) *GetSystemEventsConfiguration {
 	var systemEventsConfiguration GetSystemEventsConfiguration
 
-	paginationStr := event.GetFieldString("pagination")
+	paginationStr := event.GetFieldString("severity")
 	lastEventsAmount := event.GetFieldString("last_events_amount")
 
 	systemEventsConfiguration.Filters = buildFilters(event)
 
-	pagination, err := strconv.ParseBool(paginationStr)
-	if err != nil {
-
-		// fallback to false
-		pagination = false
-	}
+	pagination, _ := strconv.ParseBool(paginationStr)
 	systemEventsConfiguration.Pagination = pagination
 	systemEventsConfiguration.ShowLastEvents = false
 
@@ -275,6 +259,24 @@ type ProvazioSystem struct {
 	} `json:"status,omitempty"`
 }
 
+func NewProvazio(userData *UserData, event nuclio.Event) *Provazio {
+	provazioEnv := event.GetFieldString("provazio_env")
+	if provazioEnv == "" {
+		provazioEnv = userData.ProvazioEnv
+	}
+
+	UseRemote := true
+	provazioUseRemote := event.GetFieldString("provazio_use_remote")
+	if provazioUseRemote == "" {
+		UseRemote = userData.ProvazioUserRemote
+	} else {
+		UseRemote = provazioUseRemote == "true"
+	}
+	return &Provazio{
+		env:       provazioEnv,
+		useRemote: UseRemote,
+	}
+}
 
 func (p Provazio) GetSystems() ([]ProvazioSystem, error) {
 	var response []byte
@@ -462,16 +464,7 @@ func (s System) createClient() (*http.Client, error) {
 
 // Common
 func createHTTPClient() (*http.Client, error) {
-	timeout := time.Minute
-	defaultHTTPTimeout := os.Getenv("DEFAULT_HTTP_CLIENT_TIMEOUT_SECONDS")
-	if defaultHTTPTimeout != "" {
-		parsedSeconds, err := strconv.Atoi(defaultHTTPTimeout)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to parse DEFAULT_HTTP_CLIENT_TIMEOUT_SECONDS")
-		}
-		timeout = time.Duration(parsedSeconds) * time.Second
-	}
-
+	timeout := time.Second * 25
 	jar, err := cookiejar.New(&cookiejar.Options{})
 	if err != nil {
 		return nil, err
