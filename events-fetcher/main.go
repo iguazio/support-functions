@@ -265,7 +265,7 @@ func NewProvazio(userData *UserData, event nuclio.Event) *Provazio {
 		provazioEnv = userData.ProvazioEnv
 	}
 
-	UseRemote := false
+	UseRemote := true
 	provazioUseRemote := event.GetFieldString("provazio_use_remote")
 	if provazioUseRemote == "" {
 		UseRemote = userData.ProvazioUserRemote
@@ -280,7 +280,7 @@ func NewProvazio(userData *UserData, event nuclio.Event) *Provazio {
 
 func (p Provazio) GetSystems() ([]ProvazioSystem, error) {
 	var response []byte
-	client, err := createClient()
+	client, err := createHTTPClient()
 	if err != nil {
 		return nil, err
 	}
@@ -320,28 +320,21 @@ func (p Provazio) getAPISystemsURL() string {
 	switch p.env {
 	case "trial":
 		if p.useRemote {
-			url = "https://trial.provazio-dashboard.iguazio.app.provazio-prod.cloud.iguazio.com"
+			url = "https://dashboard.trial.provazio.iguazio.com"
 		} else {
-			url = "http://provazio-dashboard-trial:8060"
+			url = "http://provazio-dashboard:8060"
 		}
 		break
-	case "customer":
+	case "prod":
 		if p.useRemote {
-			url = "https://customer.provazio-dashboard.iguazio.app.provazio-prod.cloud.iguazio.com"
+			url = "https://dashboard.prod.provazio.iguazio.com"
 		} else {
 			url = "http://provazio-dashboard-customer:8060"
 		}
 		break
-	case "legacy":
-		if p.useRemote {
-			url = "https://provazio-dashboard-legacy.iguazio.app.provazio-prod.cloud.iguazio.com"
-		} else {
-			url = "http://provazio-dashboard-legacy:8060"
-		}
-		break
 	case "dev":
 		if p.useRemote {
-			url = "https://provazio-dashboard.iguazio.app.provazio-dev.cloud.iguazio.com"
+			url = "https://dashboard.dev.provazio.iguazio.com"
 		} else {
 			url = "http://provazio-dashboard:8060"
 		}
@@ -444,7 +437,7 @@ func (s System) GetEvents() (*Events, error) {
 }
 
 func (s System) createClient() (*http.Client, error) {
-	client, err := createClient()
+	client, err := createHTTPClient()
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +463,7 @@ func (s System) createClient() (*http.Client, error) {
 }
 
 // Common
-func createClient() (*http.Client, error) {
+func createHTTPClient() (*http.Client, error) {
 	timeout := time.Second * 25
 	jar, err := cookiejar.New(&cookiejar.Options{})
 	if err != nil {
