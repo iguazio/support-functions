@@ -70,11 +70,14 @@ func (suite *TestSuite) SetupTest() {
 }
 
 func (suite *TestSuite) SetupSuite() {
-	systemPassword, err := base64.StdEncoding.DecodeString("bnVuM3pAaWd6")
+	message := "bnVuM3pAaWd6"
+	base64Text := make([]byte, base64.StdEncoding.DecodedLen(len(message)))
+	l, err := base64.RawStdEncoding.Decode(base64Text, []byte(message))
 	suite.Assert().NoError(err)
+	systemPassword := string(base64Text[:l])
 
 	osEnvs := map[string]string{
-		"SYSTEMS_PASSWORD": string(systemPassword),
+		"SYSTEMS_PASSWORD": systemPassword,
 		"SYSTEMS_USERNAME": "igz_admin",
 		"PROVAZIO_DEFAULT_ENV": "dev",
 		"PROVAZIO_USE_REMOTE": "true",
