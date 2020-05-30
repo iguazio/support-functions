@@ -295,24 +295,23 @@ func (p Provazio) GetSystems() ([]ProvazioSystem, error) {
 	defer res.Body.Close() // nolint: errcheck
 
 	if response, err = ioutil.ReadAll(res.Body); err != nil {
-		return nil, errors.Wrap(err, "could not read response")
+		return nil, errors.Wrap(err, "Failed to read response body")
 	}
 
-	systems := make(map[string]ProvazioSystem)
+	var systems []ProvazioSystem
 	if err := json.Unmarshal(response, &systems); err != nil {
-		return nil, errors.Wrap(err, "could not deserialize Provazio API response")
+		return nil, errors.Wrap(err, "Failed to deserialize Provazio API response")
 	}
 
-	// Convert map[string] to list
-	var systemList []ProvazioSystem
+	var readySystems []ProvazioSystem
 	for _, system := range systems {
 		if system.Status.State == "ready" {
 
 			// Allow only ready systems
-			systemList = append(systemList, system)
+			readySystems = append(readySystems, system)
 		}
 	}
-	return systemList, nil
+	return readySystems, nil
 }
 
 func (p Provazio) getAPISystemsURL() string {
@@ -416,10 +415,10 @@ func (s System) GetEvents() (*Events, error) {
 	req.URL.RawQuery = q.Encode()
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not do get events")
+		return nil, errors.Wrap(err, "Failed to perform get events request")
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("Could not fetch events, system: %s, status: %d",
+		return nil, errors.Errorf("Failed to fetch events, system: %s, status: %d",
 			s.GetID(),
 			res.StatusCode)
 	}
@@ -427,11 +426,11 @@ func (s System) GetEvents() (*Events, error) {
 
 	responseBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not read response")
+		return nil, errors.Wrap(err, "Failed to read response body")
 	}
 	var events Events
 	if err := json.Unmarshal(responseBody, &events); err != nil {
-		return nil, errors.Wrap(err, "could not deserialize API response")
+		return nil, errors.Wrap(err, "Failed to deserialize API response")
 	}
 	return &events, nil
 }
@@ -455,7 +454,7 @@ func (s System) createClient() (*http.Client, error) {
 	}
 
 	if res.StatusCode != http.StatusCreated {
-		return nil, errors.Errorf("Could not login to system: %s, status: %d",
+		return nil, errors.Errorf("Failed to login system: %s, status: %d",
 			s.GetID(),
 			res.StatusCode)
 	}
